@@ -1,7 +1,20 @@
 #include <iostream>
 #include <vector>
-
+#include <cmath>
 using namespace std;
+
+vector<char> intToBinary(int n, int numOfBits){
+    vector<char> temp;
+    for(int i=numOfBits-1; i>=0; i--){
+        int k = (n>>i)&1;
+        if(k==1)
+            temp.push_back('1');
+        else{
+            temp.push_back('0');
+        }
+    }
+    return temp;
+}
 
 class Node{
 private:
@@ -192,17 +205,80 @@ int gateOutput(int input1, int input2, char logicGate){
     else
         return 0;
 }
-int[] truthGenerator(vector<char> logicCircuit){
+
+struct truthTable{
+    vector<vector<int>> grid;
+    vector<char> gates;
+};
+
+truthTable tableGenerator(vector<char> logicCircuit){
     int circuitSize = static_cast<int>(logicCircuit.size());
+    truthTable data;
+    for(int i=0; i<circuitSize; i++){
+        if(logicCircuit[i] != '~' && logicCircuit[i] != 'v' && logicCircuit[i] != '^' && logicCircuit[i] != '(' && logicCircuit[i] != ')'){
+                bool alreadyListed = false;
+
+                for(char v : data.gates){
+                    if(logicCircuit[i] == v){
+                        alreadyListed = true;
+                    }
+                }
+                if(!alreadyListed)
+                    data.gates.push_back(logicCircuit[i]);
+        }
+    }
+    int gateNum = static_cast<int>(data.gates.size());
+    int rowsNum = pow(2,gateNum);
+    data.grid.resize(rowsNum, vector<int>(gateNum));
+
+    int counter =0;
+
+    for(int i=0;i<rowsNum;i++){
+        vector<char> temp = intToBinary(i, gateNum);
+
+        for(int j=0; j<gateNum; j++){
+            if(temp[j]=='1')
+                data.grid[i][j] =  1;
+            else
+                data.grid[i][j] =  0;
+        }
+
+    }
+
+    return data;
 }
-bool Comparator(int mainLogic[], int simplifiedLogic[], int tableSize){
+
+vector<int> evalutor(truthTable data, vector<char> PostFix_circuit){
+
+    //work in progress
+    int gateNum = static_cast<int>(data.gates.size());
+    int circSize = static_cast<int>(PostFix_circuit.size());
+    Stack* stk = new Stack;
+
+    for(int i=0; i<circSize;i++){
+            if(PostFix_circuit[i] != '~' && PostFix_circuit[i] != 'v' && PostFix_circuit[i] != '^' && PostFix_circuit[i] != '(' && PostFix_circuit[i] != ')'){
+                Node* gate = new Node(PostFix_circuit[i]);
+                stk.pushIntoStack(gate);
+            }else{
+                if(PostFix_circuit[i] != '~'){
+
+                }
+            }
+    }
+
+}
+
+bool Comparator(vector<int> mainLogic, vector<int> simplifiedLogic, int tableSize){
+
     bool isEqual = true;
     for(int i=0;i<tableSize;i++){
-        if(mainLogic[i] != tableSize[i])
+        if(mainLogic[i] != simplifiedLogic[i])
             isEqual = false;
     }
     return isEqual;
 }
+
+
 int main(){
     string mainLogicInput;
     cout<<"Please follow the following instructions"
