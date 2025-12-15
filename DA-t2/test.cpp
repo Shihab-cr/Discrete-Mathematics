@@ -2,8 +2,10 @@
 #include <vectOR>
 #include <cmath>
 #include <algorithm>
+#include <stack>
 using namespace std;
 
+//****************************************************Operators part ****************************
 enum class OperatOR : char{
     NOT = '~',
     AND = '^',
@@ -11,6 +13,27 @@ enum class OperatOR : char{
     open_paren = '(',
     closed_paren = ')'
 };
+int gateOutput(int input1, int input2, char logicGate){
+    bool result;
+    switch(logicGate){
+    case (char)OperatOR::OR:
+        result = input1 || input2;
+        break;
+    case (char)OperatOR::AND:
+        result = input1 && input2;
+        break;
+    case (char)OperatOR::NOT:
+        if(!input1){
+            result = true;
+        }
+        else
+            result = false;
+    }
+    if(result)
+        return 1;
+    else
+        return 0;
+}
 
 bool isOperatOR(char token){
 return
@@ -32,19 +55,9 @@ else if(token == (char)OperatOR::OR)
 else
     return 0;
 }
-vector<char> intToBinary(int n, int numOfBits){
-    vector<char> temp;
-    for(int i=numOfBits-1; i>=0; i--){
-        int k = (n>>i)&1;
-        if(k==1)
-            temp.push_back('1');
-        else{
-            temp.push_back('0');
-        }
-    }
-    return temp;
-}
 
+//************************************************************************************************
+//***************************************************Helper classes ******************************
 class Node{
 private:
     char token;
@@ -170,8 +183,43 @@ public:
     }
 };
 
+//************************************************************************************************
+//***************************************************Table generation*****************************
+vector<char> intToBinary(int n, int numOfBits){
+    vector<char> temp;
+    for(int i=numOfBits-1; i>=0; i--){
+        int k = (n>>i)&1;
+        if(k==1)
+            temp.push_back('1');
+        else{
+            temp.push_back('0');
+        }
+    }
+    return temp;
+}
+
+struct tableStatus{
+    bool isTautalogy;
+    bool isSatisfiability;
+    bool isContracdition;
+};
+
+tableStatus checkTableStatus(vector<int> arr){
+    bool hasOne = false;
+    bool hasZero = true;
+    for(int i : arr){
+        if(i){
+            hasOne = true;
+        }
+        else{
+            hasZero = true;
+        }
+    }
+    return {!hasZero && hasOne, hasOne,!hasOne && hasZero};
+}
 
 vector<char> logicalCircuit_HANDler(string userInput){
+    userInput.erase(remove(userInput.begin(),userInput.end(),' '), userInput.end());
     vector<char> result;
     Stack* stk = new Stack;
 
@@ -223,28 +271,6 @@ vector<char> logicalCircuit_HANDler(string userInput){
     return result;
 }
 
-int gateOutput(int input1, int input2, char logicGate){
-    bool result;
-    switch(logicGate){
-    case (char)OperatOR::OR:
-        result = input1 || input2;
-        break;
-    case (char)OperatOR::AND:
-        result = input1 && input2;
-        break;
-    case (char)OperatOR::NOT:
-        if(!input1){
-            result = true;
-        }
-        else
-            result = false;
-    }
-    if(result)
-        return 1;
-    else
-        return 0;
-}
-
 struct truthTable{
     vector<vector<int>> grid;
     int rowsNum =0;
@@ -252,6 +278,22 @@ struct truthTable{
     vector<pair<char,int>> gates;
 
 };
+
+void printSatisfiableInputs(vector<int> results, truthTable table){
+    bool isFound = false;
+    for(int i=0; i<static_cast<int>(results.size());i++){
+        if(results[i]==1){
+            isFound=true;
+            cout<<"result is satisfiable "<<endl;
+            for(int j=0;j<table.columnsNum;j++){
+                cout<<table.gates[j].first<<"="<<table.grid[i][j]<<" ";
+            }
+            cout<<endl;
+            cout<<endl;
+        }
+    }
+    if(!isFound) cout<<" result is a contradiction"<<endl;
+}
 
 truthTable tableGenerator(vector<char> logicCircuit){
     int circuitSize = static_cast<int>(logicCircuit.size());
@@ -298,7 +340,6 @@ truthTable tableGenerator(vector<char> logicCircuit){
     return data;
 }
 
-
 int getGateIndex(truthTable data, char input){
     for(pair<char,int> v : data.gates){
         if(v.first == input){
@@ -321,7 +362,9 @@ vector<int> evalutor(vector<int>& in1, vector<int>& in2, char gate){
 }
 
 vector<int> generateResult(truthTable data, vector<char> postfix_Circuit){
+
     VectorStack *stk = new VectorStack;
+    stack<string> nameStk;
 
     for(int i=0; i<static_cast<int>(postfix_Circuit.size());i++){
         if(!isOperatOR(postfix_Circuit[i])){
@@ -331,7 +374,8 @@ vector<int> generateResult(truthTable data, vector<char> postfix_Circuit){
                 temp.push_back(data.grid[l][inputIndex]);
             }
             stk->Push(temp);
-
+            string s(1,postfix_Circuit[i]);
+            nameStk.push(s);
         }
         else{
             vector<int> in1;
@@ -340,7 +384,10 @@ vector<int> generateResult(truthTable data, vector<char> postfix_Circuit){
                 in1 = stk->top();
                 in2 = in1;
                 stk->Pop();
-                cout<<"evaluating "<<postfix_Circuit[i]<<postfix_Circuit[i-1]<<endl;
+                string newName = (char)OperatOR::NOT + nameStk.top();
+                nameStk.pop();
+                cout<<"evaluating "<<newName<<endl;
+                nameStk.push(newName);
             }
             else{
                 in1 = stk->top();
@@ -348,7 +395,15 @@ vector<int> generateResult(truthTable data, vector<char> postfix_Circuit){
 
                 in2= stk->top();
                 stk->Pop();
-                cout<<"evaluating "<<postfix_Circuit[i-2]<<postfix_Circuit[i]<<postfix_Circuit[i-1]<<endl;
+
+                string rightOp = nameStk.top();
+                nameStk.pop();
+                string leftOp = nameStk.top();
+                nameStk.pop();
+
+                string newName = (char)OperatOR::open_paren + leftOp + postfix_Circuit[i] + rightOp + (char)OperatOR::closed_paren;
+                cout<<"evaluating "<<newName<<endl;
+                nameStk.push(newName);
             }
             vector<int> temp = evalutor(in1,in2,postfix_Circuit[i]);
 
@@ -363,6 +418,41 @@ vector<int> generateResult(truthTable data, vector<char> postfix_Circuit){
     return res;
 }
 
+
+
+void repairLogic(vector<char> PostfixCircuit, truthTable data){
+    for(int i=0; i<PostfixCircuit.size();i++){
+        char originalToken = PostfixCircuit[i];
+        if(isOperatOR(originalToken)){
+            char newToken = '\0';
+            if(originalToken == (char)OperatOR::AND)
+                newToken = (char)OperatOR::OR;
+            else if(originalToken == (char)OperatOR::OR)
+                newToken = (char)OperatOR::AND;
+
+            if(newToken != '\0'){
+                vector<char> newCircuit = PostfixCircuit;
+                newCircuit[i] = newToken;
+
+                truthTable newTable = tableGenerator(newCircuit);
+                vector<int> newResults = generateResult(newTable, newCircuit);
+                tableStatus status = checkTableStatus(newResults);
+
+                if(!status.isContracdition && !status.isTautalogy && status.isSatisfiability){
+                    cout<<"has correctly fixed the table "<<endl;
+                    cout<<"Success! at changing gate at index"<< i << " from " << originalToken << " to " << newToken << endl;
+                    printSatisfiableInputs(newResults,newTable);
+                    return;
+                }
+
+            }
+        }
+    }
+    cout << "Could not auto-repair the circuit by swapping one gate." << endl;
+}
+
+
+
 bool Comparator(vector<int> mainLogic, vector<int> simplifiedLogic, int tableSize){
 
     bool isEqual = true;
@@ -373,8 +463,7 @@ bool Comparator(vector<int> mainLogic, vector<int> simplifiedLogic, int tableSiz
     return isEqual;
 }
 
-void ProgramHandler(string circuit, string s)
-{
+void ProgramHandler(string circuit, string s){
     vector<char> PostFixCircuit = logicalCircuit_HANDler(circuit);
     truthTable table = tableGenerator(PostFixCircuit);
     cout<<"Main Circuit: "<< endl;
@@ -388,6 +477,28 @@ void ProgramHandler(string circuit, string s)
         cout<<endl;
     }
     vector<int> MC_result = generateResult(table, PostFixCircuit);
+    tableStatus MC_status = checkTableStatus(MC_result);
+    if(MC_status.isSatisfiability){
+        printSatisfiableInputs(MC_result, table);
+    }
+    else if(MC_status.isContracdition){
+        cout<<"Circuit is always false (CONTRAICTORY)"<<endl;
+    }
+    else if(MC_status.isTautalogy){
+        cout<<"Circuit is always true"<<endl;
+    }
+
+    if(MC_status.isContracdition || MC_status.isTautalogy){
+        string startRepair;
+        cout<<"Attempt auto repair of circuit?"<<endl;
+        cout<<"type [y] to accept "<< " type [n] to reject"<<endl;
+        cin>>startRepair;
+        if(startRepair=="y"){
+            repairLogic(PostFixCircuit, table);
+        }
+    }
+
+
 
     vector<char> simplified = logicalCircuit_HANDler(s);
     truthTable simpleTable = tableGenerator(simplified);
@@ -410,6 +521,10 @@ void ProgramHandler(string circuit, string s)
         cout<<"don't match"<<endl;
     }
 }
+
+
+
+
 int main(){
     string mainLogicInput;
     string simplified;
@@ -426,8 +541,9 @@ int main(){
     do{
     cin>>mainLogicInput;
     cin>>simplified;
+
     ProgramHandler(mainLogicInput, simplified);
 
-    }while(mainLogicInput != "exit");
+    }while(mainLogicInput != "exit" || simplified != "exit");
 }
 

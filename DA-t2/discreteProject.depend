@@ -1,7 +1,8 @@
 # depslib dependency file v1.0
-1765734260 source:e:\myprojects\discrete\discreteproject\test.cpp
+1765817990 source:e:\myprojects\discrete\discreteproject\test.cpp
 	<iostream>
 	<vectOR>
 	<cmath>
 	<algorithm>
+	<stack>
 
