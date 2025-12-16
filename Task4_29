@@ -1,0 +1,29 @@
+#include <iostream>
+
+using namespace std;
+
+long long gcd(long long A ,long long B ){
+
+for (int i=B;i>=1;i--){
+
+if(A%i==0 && B%i==0){
+
+return i; 
+
+}
+
+}
+return 1 ;
+}
+
+
+
+
+long long gcd(long long A, long long B) {
+
+    if (A == 0 && B == 0) return 1;
+
+    if (B == 0) return A;
+
+    return gcd(B, A % B);
+}
